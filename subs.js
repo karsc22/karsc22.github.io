@@ -28,6 +28,7 @@ var enemyVisibleTimer = 0;
 var enemyRadarX = 0;
 var enemyRadarY = 0;
 var enemyRadarTime = 0;
+var debug = false;
 
 
 function distSquared(x1, x2, y1, y2) {
@@ -97,7 +98,6 @@ class Missile {
 		if (this.explodeTime > 0) {
 			this.angle += 0.1;
 			var img = document.getElementById("explosion");
-			//console.log(this.x);
 			ctx.translate(this.x, this.y);
 			if ((this.explodeTime * 10) % 1 > 0.5) {
 				//ctx.rotate(this.angle);
@@ -113,7 +113,6 @@ class Missile {
 		}
 		else if (this.isActive) {
 			var img = document.getElementById("sub");
-			//console.log(this.x);
 			ctx.translate(this.x, this.y);
 			ctx.rotate(this.angle);
 			ctx.drawImage(img, -5, -5, 10, 10);
@@ -138,15 +137,14 @@ class Sub {
 	}
 	
 	draw() {
-		//if (this != enemy || (enemyVisibleTimer * 10) % 1 > 0.5) {
+		if (debug || this != enemy || (enemyVisibleTimer * 10) % 1 > 0.5) {
 			var img = document.getElementById("sub");
-			//console.log(this.x);
 			ctx.translate(this.x, this.y);
 			ctx.rotate(this.angle);
 			ctx.drawImage(img, -this.width/2, -this.height/2);
 			ctx.rotate(-this.angle);
 			ctx.translate(-this.x, -this.y);
-		//}
+		}
 		
 		for (let i = 0; i < numMissiles; i++) {
 			this.missiles[i].draw();
@@ -179,7 +177,6 @@ class Sub {
 		var shot = false;
 		for (let i = 0; i < numMissiles && !shot; i++) {
 			if (!this.missiles[i].isActive && this.missiles[i].explodeTime <= 0) {
-				console.log("shot! " + i);
 				this.missiles[i].isActive = true;
 				this.missiles[i].x = this.x;
 				this.missiles[i].y = this.y;
@@ -278,6 +275,13 @@ function main() {
 }
 
 
+addEventListener('keypress', (event) => {
+	console.log(event.key);
+	if (event.key == 'd') {
+		debug = !debug;
+	}
+});
+
 addEventListener('mousemove', (event) => {
 	mousex = event.x;
 	mousey = event.y;
@@ -285,7 +289,6 @@ addEventListener('mousemove', (event) => {
 });
 
 addEventListener('mousedown', (event) => {
-	console.log(event.x + ", " + event.y);
 	player.fireMissile(enemy);
 });
 
