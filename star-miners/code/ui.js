@@ -7,6 +7,29 @@ function handleMouseDown(event) {
     const canvasMouseX = event.clientX - rect.left;
     const canvasMouseY = event.clientY - rect.top;
     
+    // Handle reset confirmation dialog clicks first (highest priority)
+    if (showResetConfirmation && window.resetConfirmationButtons) {
+        const buttons = window.resetConfirmationButtons;
+        
+        if (canvasMouseX >= buttons.yes.x && canvasMouseX <= buttons.yes.x + buttons.yes.width &&
+            canvasMouseY >= buttons.yes.y && canvasMouseY <= buttons.yes.y + buttons.yes.height) {
+            // User confirmed reset
+            resetAllGameData();
+            return;
+        }
+        
+        if (canvasMouseX >= buttons.no.x && canvasMouseX <= buttons.no.x + buttons.no.width &&
+            canvasMouseY >= buttons.no.y && canvasMouseY <= buttons.no.y + buttons.no.height) {
+            // User cancelled reset
+            showResetConfirmation = false;
+            return;
+        }
+        
+        // Click outside dialog cancels
+        showResetConfirmation = false;
+        return;
+    }
+    
     // Check for rescue button click first
     if (needsRescue && 
         canvasMouseX >= rescueButtonArea.x && canvasMouseX <= rescueButtonArea.x + rescueButtonArea.width &&
@@ -407,8 +430,12 @@ function drawRescueStatus() {
 }
 
 function drawAsteroidCreatorShip() {
-    // Draw all asteroid creator ships
+    // Draw all asteroid creator ships (rank 1)
     for (const ship of helpers.asteroidCreator.ships) {
+        drawSingleAsteroidCreatorShip(ship);
+    }
+    // Draw all asteroid creator ships (rank 2)
+    for (const ship of helpers.asteroidCreator2.ships) {
         drawSingleAsteroidCreatorShip(ship);
     }
 }
@@ -432,9 +459,11 @@ function drawSingleAsteroidCreatorShip(ship) {
     ctx.lineTo(size * 1.2, size);
     ctx.lineTo(size * 1.2, -size);
     ctx.closePath();
-    ctx.fillStyle = '#FFB347'; // Orange industrial color
+    // Use different colors for rank 2
+    const isRank2 = ship.rank === 2;
+    ctx.fillStyle = isRank2 ? '#9932CC' : '#FFB347'; // Purple for rank 2, orange for rank 1
     ctx.fill();
-    ctx.strokeStyle = '#FF8C00';
+    ctx.strokeStyle = isRank2 ? '#4B0082' : '#FF8C00'; // Dark purple for rank 2, dark orange for rank 1
     ctx.lineWidth = 2;
     ctx.stroke();
     
@@ -484,8 +513,12 @@ function drawSingleAsteroidCreatorShip(ship) {
 }
 
 function drawAsteroidMinerShip() {
-    // Draw all asteroid miner ships
+    // Draw all asteroid miner ships (rank 1)
     for (const ship of helpers.asteroidMiner.ships) {
+        drawSingleAsteroidMinerShip(ship);
+    }
+    // Draw all asteroid miner ships (rank 2)
+    for (const ship of helpers.asteroidMiner2.ships) {
         drawSingleAsteroidMinerShip(ship);
     }
 }
@@ -509,9 +542,11 @@ function drawSingleAsteroidMinerShip(ship) {
     ctx.lineTo(size * 0.9, size * 0.8);
     ctx.lineTo(size * 0.9, -size * 0.8);
     ctx.closePath();
-    ctx.fillStyle = '#32CD32'; // Green mining color
+    // Use different colors for rank 2
+    const isRank2 = ship.rank === 2;
+    ctx.fillStyle = isRank2 ? '#FF6347' : '#32CD32'; // Red for rank 2, green for rank 1
     ctx.fill();
-    ctx.strokeStyle = '#228B22';
+    ctx.strokeStyle = isRank2 ? '#8B0000' : '#228B22'; // Dark red for rank 2, dark green for rank 1
     ctx.lineWidth = 1.5;
     ctx.stroke();
     
@@ -575,6 +610,106 @@ function drawSpawnedAsteroids() {
     }
 }
 
+function drawGoldenAsteroid(asteroid) {
+    ctx.save();
+    ctx.translate(asteroid.x, asteroid.y);
+    ctx.rotate(asteroid.rotation || 0);
+    
+    const size = asteroid.size;
+    
+    // Generate shape if not cached
+    if (!asteroid.shape) {
+        const points = 12 + Math.floor(Math.random() * 6); // 12-17 points for more detail
+        const angleStep = (Math.PI * 2) / points;
+        asteroid.shape = [];
+        
+        for (let i = 0; i < points; i++) {
+            const angle = i * angleStep;
+            const radiusVariation = 0.7 + Math.random() * 0.6; // More consistent than regular asteroids
+            const radius = size * radiusVariation;
+            
+            const angleVariation = (Math.random() - 0.5) * 0.2;
+            const finalAngle = angle + angleVariation;
+            
+            asteroid.shape.push({
+                x: Math.cos(finalAngle) * radius,
+                y: Math.sin(finalAngle) * radius
+            });
+        }
+    }
+    
+    // Draw the golden asteroid shape
+    ctx.beginPath();
+    const shape = asteroid.shape;
+    for (let i = 0; i < shape.length; i++) {
+        const point = shape[i];
+        if (i === 0) {
+            ctx.moveTo(point.x, point.y);
+        } else {
+            ctx.lineTo(point.x, point.y);
+        }
+    }
+    ctx.closePath();
+    
+    // Golden gradient fill
+    const gradient = ctx.createRadialGradient(-size * 0.3, -size * 0.3, 0, 0, 0, size);
+    gradient.addColorStop(0, '#FFD700'); // Bright gold
+    gradient.addColorStop(0.5, '#FFA500'); // Orange-gold
+    gradient.addColorStop(1, '#B8860B'); // Dark goldenrod
+    ctx.fillStyle = gradient;
+    ctx.fill();
+    
+    // Bright golden outline
+    ctx.strokeStyle = '#FFFF00'; // Bright yellow outline
+    ctx.lineWidth = 2;
+    ctx.stroke();
+    
+    // Add sparkle effects
+    const sparkleCount = 8;
+    for (let i = 0; i < sparkleCount; i++) {
+        const sparkleAngle = (i / sparkleCount) * Math.PI * 2 + Date.now() * 0.005;
+        const sparkleRadius = size * 0.6 + Math.sin(Date.now() * 0.01 + i) * size * 0.2;
+        const sparkleX = Math.cos(sparkleAngle) * sparkleRadius;
+        const sparkleY = Math.sin(sparkleAngle) * sparkleRadius;
+        
+        ctx.beginPath();
+        ctx.arc(sparkleX, sparkleY, 1 + Math.sin(Date.now() * 0.02 + i) * 0.5, 0, 2 * Math.PI);
+        ctx.fillStyle = '#FFFFFF';
+        ctx.fill();
+    }
+    
+    ctx.restore();
+    
+    // Draw progress bar if being mined (outside of rotation transformation)
+    if (asteroid.beingMined) {
+        const barWidth = size * 2;
+        const barHeight = 6;
+        const barX = asteroid.x - barWidth / 2;
+        const barY = asteroid.y - size - 20;
+        
+        // Background
+        ctx.fillStyle = '#333';
+        ctx.fillRect(barX, barY, barWidth, barHeight);
+        
+        // Progress
+        const progressWidth = barWidth * (asteroid.miningProgress / asteroid.miningTime);
+        ctx.fillStyle = '#FFD700';
+        ctx.fillRect(barX, barY, progressWidth, barHeight);
+        
+        // Border
+        ctx.strokeStyle = '#FFF';
+        ctx.lineWidth = 1;
+        ctx.strokeRect(barX, barY, barWidth, barHeight);
+    }
+}
+
+function drawGoldenAsteroids() {
+    // Draw all golden asteroids
+    for (const asteroid of goldenAsteroids) {
+        drawGoldenAsteroid(asteroid);
+    }
+}
+
 function drawResourceCounters() {
     ctx.fillStyle = '#FFF';
     ctx.font = '16px Arial';
@@ -592,16 +727,19 @@ function drawResourceCounters() {
         ctx.fillStyle = '#FFD700';
         ctx.fillText(`High Score: ${gameMode === 'time-trial' ? highScores.timeTrial : highScores.fuelEndurance}`, 60, 140);
     } else {
-        ctx.fillText(`Money: $${money}`, 60, 100);
-        ctx.fillText(`Asteroids Mined: ${asteroidsMined}`, 60, 120);
+        ctx.fillText(`Money: ${getFormattedMoneyDisplay()}`, 60, 100);
+        ctx.fillStyle = '#FFD700';
+        ctx.fillText(`Gold: ${gold}`, 60, 120);
+        ctx.fillStyle = '#FFF';
+        ctx.fillText(`Asteroids Mined: ${asteroidsMined}`, 60, 140);
         
         // Show asteroid count
         ctx.fillStyle = '#CCCCCC';
-        ctx.fillText(`Asteroids: ${asteroids.length}/100`, 60, 140);
+        ctx.fillText(`Asteroids: ${asteroids.length}/100`, 60, 160);
         
         if (unprocessedAsteroids > 0) {
             ctx.fillStyle = '#FFD700';
-            ctx.fillText(`Unprocessed: ${unprocessedAsteroids} (Go to Earth!)`, 60, 160);
+            ctx.fillText(`Unprocessed: ${unprocessedAsteroids} (Go to Earth!)`, 60, 180);
         }
     }
 }
@@ -815,7 +953,7 @@ function drawUpgradeMenu() {
         const cost = getUpgradeCost(upgrade.key);
         const currentLevel = upgrades[upgrade.key];
         const isMaxed = currentLevel >= 5;
-        const canAfford = money >= cost && !isMaxed;
+        const canAfford = canAffordUpgrade(upgrade.key);
         
         // Upgrade box - different colors for maxed upgrades
         if (isMaxed) {
@@ -839,7 +977,10 @@ function drawUpgradeMenu() {
             ctx.fillText('MAX LEVEL', 30, y + 50);
         } else {
             ctx.fillStyle = '#FFF';
-            ctx.fillText(`Cost: $${cost}`, 30, y + 50);
+            const currency = getUpgradeCurrency(upgrade.key);
+            const currencySymbol = currency === 'gold' ? '' : '$';
+            const currencyName = currency === 'gold' ? ' Gold' : '';
+            ctx.fillText(`Cost: ${currencySymbol}${cost}${currencyName}`, 30, y + 50);
         }
       
         // Store click area for later (transform back to screen coordinates)
@@ -1079,7 +1220,7 @@ function drawOptionsMenu() {
     if (optionsMenuAnimation <= 0) return;
     
     const menuWidth = 400;
-    const menuHeight = 300;
+    const menuHeight = 350; // Increased height for reset button
     
     // Calculate animated position
     const buttonCenterX = optionsButtonArea.x + optionsButtonArea.width / 2;
@@ -1149,11 +1290,37 @@ function drawOptionsMenu() {
         option.clickArea = { x: menuX + 20, y: menuY + y, width: menuWidth - 40, height: 60 };
     });
     
+    // Reset All button
+    const resetButtonY = 290;
+    const resetButtonHeight = 40;
+    const resetButtonWidth = menuWidth - 40;
+    const resetButtonX = 20;
+    
+    ctx.fillStyle = 'rgba(255, 0, 0, 0.8)';
+    ctx.fillRect(resetButtonX, resetButtonY, resetButtonWidth, resetButtonHeight);
+    ctx.strokeStyle = '#FF0000';
+    ctx.lineWidth = 2;
+    ctx.strokeRect(resetButtonX, resetButtonY, resetButtonWidth, resetButtonHeight);
+    
+    ctx.fillStyle = '#FFF';
+    ctx.font = 'bold 16px Arial';
+    ctx.textAlign = 'center';
+    ctx.fillText('⚠️ RESET ALL GAME DATA ⚠️', menuWidth / 2, resetButtonY + 25);
+    
+    // Store reset button click area
+    const resetButtonArea = {
+        x: menuX + resetButtonX,
+        y: menuY + resetButtonY,
+        width: resetButtonWidth,
+        height: resetButtonHeight
+    };
+    window.currentResetButtonArea = resetButtonArea;
+    
     // Instructions
     ctx.fillStyle = '#9966FF';
-    ctx.font = '14px Arial';
+    ctx.font = '12px Arial';
     ctx.textAlign = 'center';
-    ctx.fillText('Click on options to toggle them', menuWidth / 2, menuHeight - 20);
+    ctx.fillText('Click on options to toggle them', menuWidth / 2, resetButtonY - 10);
     
     ctx.restore();
     
@@ -1163,6 +1330,18 @@ function drawOptionsMenu() {
 
 function handleOptionsClick(x, y) {
     if (optionsMenuAnimation <= 0 || !window.currentOptionData) return false;
+    
+    // Check for reset button click
+    if (window.currentResetButtonArea) {
+        const resetArea = window.currentResetButtonArea;
+        if (x >= resetArea.x && x <= resetArea.x + resetArea.width &&
+            y >= resetArea.y && y <= resetArea.y + resetArea.height) {
+            
+            // Show confirmation dialog
+            showResetConfirmation = true;
+            return true;
+        }
+    }
     
     for (const option of window.currentOptionData) {
         const area = option.clickArea;
@@ -1190,7 +1369,7 @@ function drawHireHelpMenu() {
     if (hireHelpMenuAnimation <= 0) return;
     
     const menuWidth = 450;
-    const menuHeight = 400;
+    const menuHeight = 500; // Increased height for rank 2 helpers
     
     // Calculate animated position
     const buttonCenterX = hireHelpButtonArea.x + hireHelpButtonArea.width / 2;
@@ -1232,10 +1411,22 @@ function drawHireHelpMenu() {
             status: helpers.asteroidCreator.ships.length > 0 ? `Active Ships: ${helpers.asteroidCreator.ships.length}` : 'No ships active'
         },
         { 
+            key: 'asteroidCreator2', 
+            name: 'Asteroid Creator II', 
+            desc: 'Advanced planet miner, faster & longer lasting (200 min)', 
+            status: helpers.asteroidCreator2.ships.length > 0 ? `Active Ships: ${helpers.asteroidCreator2.ships.length}` : 'No ships active'
+        },
+        { 
             key: 'asteroidMiner', 
             name: 'Asteroid Miner', 
             desc: 'Automatically mines asteroids for money (5 min)', 
             status: helpers.asteroidMiner.ships.length > 0 ? `Active Ships: ${helpers.asteroidMiner.ships.length}` : 'No ships active'
+        },
+        { 
+            key: 'asteroidMiner2', 
+            name: 'Asteroid Miner II', 
+            desc: 'Advanced asteroid miner, faster & longer lasting (50 min)', 
+            status: helpers.asteroidMiner2.ships.length > 0 ? `Active Ships: ${helpers.asteroidMiner2.ships.length}` : 'No ships active'
         },
         { 
             key: 'rescueHelper', 
@@ -1285,15 +1476,24 @@ function drawHireHelpMenu() {
                 ctx.fillText('FREE', menuWidth - 60, y + 25);
             }
         } else {
-            // Show cost for hiring additional ships
-            ctx.fillStyle = canAfford ? '#FFF' : '#F00';
-            ctx.fillText(`$${helperObj.cost}`, menuWidth - 80, y + 25);
-            if (isActive) {
-                ctx.fillStyle = '#66FF99';
-                ctx.fillText('HIRE MORE', menuWidth - 100, y + 45);
+            // Check if at maximum capacity for asteroid creators (combined)
+            const totalCreatorShips = helpers.asteroidCreator.ships.length + helpers.asteroidCreator2.ships.length;
+            if ((helper.key === 'asteroidCreator' || helper.key === 'asteroidCreator2') && totalCreatorShips >= 8) {
+                ctx.fillStyle = '#FFD700';
+                ctx.fillText('MAX (8)', menuWidth - 80, y + 25);
+                ctx.fillStyle = '#FFD700';
+                ctx.fillText('ALL PLANETS', menuWidth - 120, y + 45);
             } else {
-                ctx.fillStyle = '#AAA';
-                ctx.fillText('HIRE', menuWidth - 60, y + 45);
+                // Show cost for hiring additional ships
+                ctx.fillStyle = canAfford ? '#FFF' : '#F00';
+                ctx.fillText(`$${helperObj.cost}`, menuWidth - 80, y + 25);
+                if (isActive) {
+                    ctx.fillStyle = '#66FF99';
+                    ctx.fillText('HIRE MORE', menuWidth - 100, y + 45);
+                } else {
+                    ctx.fillStyle = '#AAA';
+                    ctx.fillText('HIRE', menuWidth - 60, y + 45);
+                }
             }
         }
         
@@ -1334,14 +1534,24 @@ function handleHireHelpClick(x, y) {
             } else {
                 // Allow hiring multiple ships for asteroid creator and miner
                 if (money >= helperObj.cost) {
+                    // Check limits for asteroid creators (combined)
+                    const totalCreatorShips = helpers.asteroidCreator.ships.length + helpers.asteroidCreator2.ships.length;
+                    if ((helper.key === 'asteroidCreator' || helper.key === 'asteroidCreator2') && totalCreatorShips >= 8) {
+                        return true; // Already at max (8 planets excluding Earth)
+                    }
+                    
                     money -= helperObj.cost;
                     
                     // Create and add new ship to the array
                     let newShip;
                     if (helper.key === 'asteroidCreator') {
-                        newShip = createAsteroidCreatorShip();
+                        newShip = createAsteroidCreatorShip(1);
+                    } else if (helper.key === 'asteroidCreator2') {
+                        newShip = createAsteroidCreatorShip(2);
                     } else if (helper.key === 'asteroidMiner') {
-                        newShip = createAsteroidMinerShip();
+                        newShip = createAsteroidMinerShip(1);
+                    } else if (helper.key === 'asteroidMiner2') {
+                        newShip = createAsteroidMinerShip(2);
                     }
                     
                     if (newShip) {
@@ -1406,8 +1616,15 @@ function handleUpgradeClick(x, y) {
                 return true; // Don't allow further upgrades
             }
             
-            if (money >= cost || debugMode) {
-                if (!debugMode) money -= cost;
+            if (canAffordUpgrade(upgrade.key) || debugMode) {
+                if (!debugMode) {
+                    // Deduct the appropriate currency
+                    if (upgrade.key === 'multiMine') {
+                        gold -= cost;
+                    } else {
+                        money -= cost;
+                    }
+                }
                 upgrades[upgrade.key]++;
                 spaceship.maxFuel = getUpgradedMaxFuel();
                 
@@ -1419,4 +1636,74 @@ function handleUpgradeClick(x, y) {
         }
     }
     return false;
+}
+
+function drawResetConfirmation() {
+    if (!showResetConfirmation) return;
+    
+    // Draw overlay
+    ctx.save();
+    ctx.fillStyle = 'rgba(0, 0, 0, 0.8)';
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    
+    // Dialog dimensions
+    const dialogWidth = 400;
+    const dialogHeight = 200;
+    const dialogX = (canvas.width - dialogWidth) / 2;
+    const dialogY = (canvas.height - dialogHeight) / 2;
+    
+    // Draw dialog background
+    ctx.fillStyle = '#1a1a1a';
+    ctx.fillRect(dialogX, dialogY, dialogWidth, dialogHeight);
+    ctx.strokeStyle = '#ff4444';
+    ctx.lineWidth = 3;
+    ctx.strokeRect(dialogX, dialogY, dialogWidth, dialogHeight);
+    
+    // Warning title
+    ctx.fillStyle = '#ff4444';
+    ctx.font = 'bold 20px Arial';
+    ctx.textAlign = 'center';
+    ctx.fillText('⚠️ WARNING ⚠️', dialogX + dialogWidth/2, dialogY + 40);
+    
+    // Confirmation text
+    ctx.fillStyle = '#ffffff';
+    ctx.font = '16px Arial';
+    ctx.fillText('This will permanently delete all your', dialogX + dialogWidth/2, dialogY + 70);
+    ctx.fillText('progress, upgrades, money, and achievements!', dialogX + dialogWidth/2, dialogY + 90);
+    ctx.fillText('Are you sure you want to continue?', dialogX + dialogWidth/2, dialogY + 120);
+    
+    // Buttons
+    const buttonWidth = 100;
+    const buttonHeight = 40;
+    const buttonY = dialogY + dialogHeight - 60;
+    const yesButtonX = dialogX + dialogWidth/2 - buttonWidth - 10;
+    const noButtonX = dialogX + dialogWidth/2 + 10;
+    
+    // No button (cancel)
+    ctx.fillStyle = '#4a4a4a';
+    ctx.fillRect(noButtonX, buttonY, buttonWidth, buttonHeight);
+    ctx.strokeStyle = '#888888';
+    ctx.lineWidth = 2;
+    ctx.strokeRect(noButtonX, buttonY, buttonWidth, buttonHeight);
+    ctx.fillStyle = '#ffffff';
+    ctx.font = '16px Arial';
+    ctx.fillText('Cancel', noButtonX + buttonWidth/2, buttonY + buttonHeight/2 + 6);
+    
+    // Yes button (confirm)
+    ctx.fillStyle = '#cc3333';
+    ctx.fillRect(yesButtonX, buttonY, buttonWidth, buttonHeight);
+    ctx.strokeStyle = '#ff4444';
+    ctx.lineWidth = 2;
+    ctx.strokeRect(yesButtonX, buttonY, buttonWidth, buttonHeight);
+    ctx.fillStyle = '#ffffff';
+    ctx.font = 'bold 16px Arial';
+    ctx.fillText('RESET ALL', yesButtonX + buttonWidth/2, buttonY + buttonHeight/2 + 6);
+    
+    // Store button areas for click detection
+    window.resetConfirmationButtons = {
+        yes: { x: yesButtonX, y: buttonY, width: buttonWidth, height: buttonHeight },
+        no: { x: noButtonX, y: buttonY, width: buttonWidth, height: buttonHeight }
+    };
+    
+    ctx.restore();
 }
