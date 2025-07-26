@@ -11,6 +11,16 @@ function handleMouseDown(event) {
     if (showResetConfirmation && window.resetConfirmationButtons) {
         const buttons = window.resetConfirmationButtons;
         
+        // Check for X button click
+        if (window.resetConfirmationXButton) {
+            const xButton = window.resetConfirmationXButton;
+            if (canvasMouseX >= xButton.x && canvasMouseX <= xButton.x + xButton.width &&
+                canvasMouseY >= xButton.y && canvasMouseY <= xButton.y + xButton.height) {
+                showResetConfirmation = false;
+                return;
+            }
+        }
+        
         if (canvasMouseX >= buttons.yes.x && canvasMouseX <= buttons.yes.x + buttons.yes.width &&
             canvasMouseY >= buttons.yes.y && canvasMouseY <= buttons.yes.y + buttons.yes.height) {
             // User confirmed reset
@@ -153,6 +163,11 @@ function handleMouseDown(event) {
     // Check for challenge menu clicks
     if (challengeMenuAnimation > 0 && handleChallengeClick(canvasMouseX, canvasMouseY)) {
         return; // Don't process movement if clicked on challenge
+    }
+    
+    // Check for achievement menu clicks
+    if (achievementMenuAnimation > 0 && handleAchievementClick(canvasMouseX, canvasMouseY)) {
+        return; // Don't process movement if clicked on achievement
     }
     
     // Check for upgrade menu clicks
@@ -935,6 +950,30 @@ function drawUpgradeMenu() {
     ctx.textAlign = 'center';
     ctx.fillText('UPGRADES', menuWidth / 2, 40);
     
+    // X button
+    const xButtonSize = 30;
+    const xButtonX = menuWidth - xButtonSize - 10;
+    const xButtonY = 10;
+    
+    ctx.fillStyle = 'rgba(255, 0, 0, 0.7)';
+    ctx.fillRect(xButtonX, xButtonY, xButtonSize, xButtonSize);
+    ctx.strokeStyle = '#FF0000';
+    ctx.lineWidth = 2;
+    ctx.strokeRect(xButtonX, xButtonY, xButtonSize, xButtonSize);
+    
+    ctx.fillStyle = '#FFF';
+    ctx.font = 'bold 20px Arial';
+    ctx.textAlign = 'center';
+    ctx.fillText('×', xButtonX + xButtonSize/2, xButtonY + xButtonSize/2 + 7);
+    
+    // Store X button click area
+    window.upgradeMenuXButton = {
+        x: menuX + xButtonX,
+        y: menuY + xButtonY,
+        width: xButtonSize,
+        height: xButtonSize
+    };
+    
     // Upgrades
     const upgradeData = [
         { key: 'fuelTank', name: 'Fuel Tank', desc: `+50 Max Fuel (${upgrades.fuelTank}/5)` },
@@ -1072,6 +1111,30 @@ function drawChallengeMenu() {
     ctx.textAlign = 'center';
     ctx.fillText('CHALLENGE MODES', menuWidth / 2, 40);
     
+    // X button
+    const xButtonSize = 30;
+    const xButtonX = menuWidth - xButtonSize - 10;
+    const xButtonY = 10;
+    
+    ctx.fillStyle = 'rgba(255, 0, 0, 0.7)';
+    ctx.fillRect(xButtonX, xButtonY, xButtonSize, xButtonSize);
+    ctx.strokeStyle = '#FF0000';
+    ctx.lineWidth = 2;
+    ctx.strokeRect(xButtonX, xButtonY, xButtonSize, xButtonSize);
+    
+    ctx.fillStyle = '#FFF';
+    ctx.font = 'bold 20px Arial';
+    ctx.textAlign = 'center';
+    ctx.fillText('×', xButtonX + xButtonSize/2, xButtonY + xButtonSize/2 + 7);
+    
+    // Store X button click area
+    window.challengeMenuXButton = {
+        x: menuX + xButtonX,
+        y: menuY + xButtonY,
+        width: xButtonSize,
+        height: xButtonSize
+    };
+    
     // Challenge options
     const challenges = [
         {
@@ -1159,6 +1222,30 @@ function drawAchievementMenu() {
     ctx.font = 'bold 24px Arial';
     ctx.textAlign = 'center';
     ctx.fillText('ACHIEVEMENTS', menuWidth / 2, 40);
+    
+    // X button
+    const xButtonSize = 30;
+    const xButtonX = menuWidth - xButtonSize - 10;
+    const xButtonY = 10;
+    
+    ctx.fillStyle = 'rgba(255, 0, 0, 0.7)';
+    ctx.fillRect(xButtonX, xButtonY, xButtonSize, xButtonSize);
+    ctx.strokeStyle = '#FF0000';
+    ctx.lineWidth = 2;
+    ctx.strokeRect(xButtonX, xButtonY, xButtonSize, xButtonSize);
+    
+    ctx.fillStyle = '#FFF';
+    ctx.font = 'bold 20px Arial';
+    ctx.textAlign = 'center';
+    ctx.fillText('×', xButtonX + xButtonSize/2, xButtonY + xButtonSize/2 + 7);
+    
+    // Store X button click area
+    window.achievementMenuXButton = {
+        x: menuX + xButtonX,
+        y: menuY + xButtonY,
+        width: xButtonSize,
+        height: xButtonSize
+    };
     
     // Achievement progress
     const totalAchievements = Object.keys(ACHIEVEMENTS).length;
@@ -1253,6 +1340,30 @@ function drawOptionsMenu() {
     ctx.textAlign = 'center';
     ctx.fillText('OPTIONS', menuWidth / 2, 40);
     
+    // X button
+    const xButtonSize = 30;
+    const xButtonX = menuWidth - xButtonSize - 10;
+    const xButtonY = 10;
+    
+    ctx.fillStyle = 'rgba(255, 0, 0, 0.7)';
+    ctx.fillRect(xButtonX, xButtonY, xButtonSize, xButtonSize);
+    ctx.strokeStyle = '#FF0000';
+    ctx.lineWidth = 2;
+    ctx.strokeRect(xButtonX, xButtonY, xButtonSize, xButtonSize);
+    
+    ctx.fillStyle = '#FFF';
+    ctx.font = 'bold 20px Arial';
+    ctx.textAlign = 'center';
+    ctx.fillText('×', xButtonX + xButtonSize/2, xButtonY + xButtonSize/2 + 7);
+    
+    // Store X button click area
+    window.optionsMenuXButton = {
+        x: menuX + xButtonX,
+        y: menuY + xButtonY,
+        width: xButtonSize,
+        height: xButtonSize
+    };
+    
     // Options
     const optionData = [
         { key: 'soundEnabled', name: 'Sound Effects', desc: 'Enable/disable all sound effects' },
@@ -1331,6 +1442,17 @@ function drawOptionsMenu() {
 function handleOptionsClick(x, y) {
     if (optionsMenuAnimation <= 0 || !window.currentOptionData) return false;
     
+    // Check for X button click
+    if (window.optionsMenuXButton) {
+        const xButton = window.optionsMenuXButton;
+        if (x >= xButton.x && x <= xButton.x + xButton.width &&
+            y >= xButton.y && y <= xButton.y + xButton.height) {
+            showOptionsMenu = false;
+            optionsMenuTarget = 0;
+            return true;
+        }
+    }
+    
     // Check for reset button click
     if (window.currentResetButtonArea) {
         const resetArea = window.currentResetButtonArea;
@@ -1401,6 +1523,30 @@ function drawHireHelpMenu() {
     ctx.font = 'bold 24px Arial';
     ctx.textAlign = 'center';
     ctx.fillText('HIRE HELP', menuWidth / 2, 40);
+    
+    // X button
+    const xButtonSize = 30;
+    const xButtonX = menuWidth - xButtonSize - 10;
+    const xButtonY = 10;
+    
+    ctx.fillStyle = 'rgba(255, 0, 0, 0.7)';
+    ctx.fillRect(xButtonX, xButtonY, xButtonSize, xButtonSize);
+    ctx.strokeStyle = '#FF0000';
+    ctx.lineWidth = 2;
+    ctx.strokeRect(xButtonX, xButtonY, xButtonSize, xButtonSize);
+    
+    ctx.fillStyle = '#FFF';
+    ctx.font = 'bold 20px Arial';
+    ctx.textAlign = 'center';
+    ctx.fillText('×', xButtonX + xButtonSize/2, xButtonY + xButtonSize/2 + 7);
+    
+    // Store X button click area
+    window.hireHelpMenuXButton = {
+        x: menuX + xButtonX,
+        y: menuY + xButtonY,
+        width: xButtonSize,
+        height: xButtonSize
+    };
     
     // Helper options
     const helperData = [
@@ -1516,6 +1662,17 @@ function drawHireHelpMenu() {
 function handleHireHelpClick(x, y) {
     if (hireHelpMenuAnimation <= 0 || !window.currentHelperData) return false;
     
+    // Check for X button click
+    if (window.hireHelpMenuXButton) {
+        const xButton = window.hireHelpMenuXButton;
+        if (x >= xButton.x && x <= xButton.x + xButton.width &&
+            y >= xButton.y && y <= xButton.y + xButton.height) {
+            showHireHelpMenu = false;
+            hireHelpMenuTarget = 0;
+            return true;
+        }
+    }
+    
     for (const helper of window.currentHelperData) {
         const area = helper.clickArea;
         if (x >= area.x && x <= area.x + area.width &&
@@ -1570,6 +1727,17 @@ function handleHireHelpClick(x, y) {
 function handleChallengeClick(x, y) {
     if (challengeMenuAnimation <= 0 || !window.currentChallengeData) return false;
     
+    // Check for X button click
+    if (window.challengeMenuXButton) {
+        const xButton = window.challengeMenuXButton;
+        if (x >= xButton.x && x <= xButton.x + xButton.width &&
+            y >= xButton.y && y <= xButton.y + xButton.height) {
+            showChallengeMenu = false;
+            challengeMenuTarget = 0;
+            return true;
+        }
+    }
+    
     for (const challenge of window.currentChallengeData) {
         const area = challenge.clickArea;
         if (x >= area.x && x <= area.x + area.width &&
@@ -1581,8 +1749,36 @@ function handleChallengeClick(x, y) {
     return false;
 }
 
+function handleAchievementClick(x, y) {
+    if (achievementMenuAnimation <= 0) return false;
+    
+    // Check for X button click
+    if (window.achievementMenuXButton) {
+        const xButton = window.achievementMenuXButton;
+        if (x >= xButton.x && x <= xButton.x + xButton.width &&
+            y >= xButton.y && y <= xButton.y + xButton.height) {
+            showAchievementMenu = false;
+            achievementMenuTarget = 0;
+            return true;
+        }
+    }
+    
+    return false;
+}
+
 function handleUpgradeClick(x, y) {
     if (upgradeMenuAnimation <= 0 || !window.currentUpgradeData) return false;
+    
+    // Check for X button click
+    if (window.upgradeMenuXButton) {
+        const xButton = window.upgradeMenuXButton;
+        if (x >= xButton.x && x <= xButton.x + xButton.width &&
+            y >= xButton.y && y <= xButton.y + xButton.height) {
+            showUpgradeMenu = false;
+            upgradeMenuTarget = 0;
+            return true;
+        }
+    }
     
     // Check for reset button click in debug mode
     if (debugMode && window.currentResetButtonArea) {
@@ -1665,6 +1861,30 @@ function drawResetConfirmation() {
     ctx.textAlign = 'center';
     ctx.fillText('⚠️ WARNING ⚠️', dialogX + dialogWidth/2, dialogY + 40);
     
+    // X button
+    const xButtonSize = 25;
+    const xButtonX = dialogX + dialogWidth - xButtonSize - 10;
+    const xButtonY = dialogY + 10;
+    
+    ctx.fillStyle = 'rgba(255, 0, 0, 0.7)';
+    ctx.fillRect(xButtonX, xButtonY, xButtonSize, xButtonSize);
+    ctx.strokeStyle = '#FF0000';
+    ctx.lineWidth = 2;
+    ctx.strokeRect(xButtonX, xButtonY, xButtonSize, xButtonSize);
+    
+    ctx.fillStyle = '#FFF';
+    ctx.font = 'bold 18px Arial';
+    ctx.textAlign = 'center';
+    ctx.fillText('×', xButtonX + xButtonSize/2, xButtonY + xButtonSize/2 + 6);
+    
+    // Store X button click area
+    window.resetConfirmationXButton = {
+        x: xButtonX,
+        y: xButtonY,
+        width: xButtonSize,
+        height: xButtonSize
+    };
+    
     // Confirmation text
     ctx.fillStyle = '#ffffff';
     ctx.font = '16px Arial';
@@ -1704,6 +1924,61 @@ function drawResetConfirmation() {
         yes: { x: yesButtonX, y: buttonY, width: buttonWidth, height: buttonHeight },
         no: { x: noButtonX, y: buttonY, width: buttonWidth, height: buttonHeight }
     };
+    
+    ctx.restore();
+}
+
+function drawOfflineEarnings() {
+    if (!window.offlineEarningsInfo) return;
+    
+    const info = window.offlineEarningsInfo;
+    const now = Date.now();
+    const displayTime = 8000; // Show for 8 seconds
+    
+    if (now - info.timestamp > displayTime) {
+        window.offlineEarningsInfo = null;
+        return;
+    }
+    
+    // Fade in/out animation
+    const elapsed = now - info.timestamp;
+    let alpha = 1;
+    if (elapsed < 1000) {
+        alpha = elapsed / 1000; // Fade in
+    } else if (elapsed > displayTime - 1000) {
+        alpha = (displayTime - elapsed) / 1000; // Fade out
+    }
+    
+    ctx.save();
+    ctx.globalAlpha = alpha;
+    
+    // Background
+    const width = 400;
+    const height = 120;
+    const x = (canvas.width - width) / 2;
+    const y = 100;
+    
+    ctx.fillStyle = 'rgba(0, 0, 0, 0.8)';
+    ctx.fillRect(x, y, width, height);
+    ctx.strokeStyle = '#FFD700';
+    ctx.lineWidth = 3;
+    ctx.strokeRect(x, y, width, height);
+    
+    // Title
+    ctx.fillStyle = '#FFD700';
+    ctx.font = 'bold 20px Arial';
+    ctx.textAlign = 'center';
+    ctx.fillText('⏰ OFFLINE EARNINGS ⏰', x + width/2, y + 30);
+    
+    // Earnings amount
+    ctx.fillStyle = '#FFF';
+    ctx.font = 'bold 24px Arial';
+    ctx.fillText(`+$${info.amount.toLocaleString()}`, x + width/2, y + 60);
+    
+    // Time info
+    ctx.fillStyle = '#CCC';
+    ctx.font = '16px Arial';
+    ctx.fillText(`Earned during ${info.time} offline`, x + width/2, y + 85);
     
     ctx.restore();
 }

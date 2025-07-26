@@ -1862,6 +1862,28 @@ window.addEventListener('keydown', (e) => {
         debugMode = !debugMode;
         e.preventDefault();
     }
+    if (e.code === 'Escape') {
+        // Close any open menu
+        if (showResetConfirmation) {
+            showResetConfirmation = false;
+        } else if (showUpgradeMenu) {
+            showUpgradeMenu = false;
+            upgradeMenuTarget = 0;
+        } else if (showChallengeMenu) {
+            showChallengeMenu = false;
+            challengeMenuTarget = 0;
+        } else if (showAchievementMenu) {
+            showAchievementMenu = false;
+            achievementMenuTarget = 0;
+        } else if (showOptionsMenu) {
+            showOptionsMenu = false;
+            optionsMenuTarget = 0;
+        } else if (showHireHelpMenu) {
+            showHireHelpMenu = false;
+            hireHelpMenuTarget = 0;
+        }
+        e.preventDefault();
+    }
 });
 
 
@@ -2662,6 +2684,7 @@ function animate(now = performance.now()) {
     drawOptionsMenu();
     drawHireHelpMenu();
     drawResetConfirmation(); // Draw reset confirmation dialog on top of everything
+    drawOfflineEarnings(); // Draw offline earnings notification
     drawCountdown(); // Draw countdown on top of everything
     drawRescueStatus(); // Draw rescue status
     drawAchievementBanners(); // Draw achievement banners on top of everything
