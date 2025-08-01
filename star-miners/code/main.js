@@ -30,8 +30,8 @@ const spaceship = {
     angle: 0
 };
 
-function getUpgradedMaxFuel() {
-    return 100 + (upgrades.fuelTank * 50);
+function getUpgradedHelperDuration() {
+    return 1 + (upgrades.helperDuration * 0.5); // +50% duration per level
 }
 
 function getUpgradedFuelConsumption() {
@@ -67,7 +67,7 @@ function getUpgradeCost(upgradeType) {
     }
     
     const baseCosts = {
-        fuelTank: 200,
+        helperDuration: 250,
         fuelEfficiency: 300,
         miningSpeed: 500,
         thrustPower: 400,
@@ -135,9 +135,28 @@ function getFormattedMoneyDisplay() {
     }
 }
 
+// Money popup functions
+function createMoneyPopup(amount, x, y) {
+    moneyPopups.push({
+        amount: amount,
+        x: x,
+        y: y,
+        time: Date.now(),
+        duration: 2000 // 2 seconds
+    });
+}
+
+function updateMoneyPopups() {
+    const now = Date.now();
+    // Remove expired popups
+    moneyPopups = moneyPopups.filter(popup => now - popup.time < popup.duration);
+}
+
 let isMouseDown = false;
 let mouseX = 0;
 let mouseY = 0;
+let canvasMouseX = 0; // Store screen coordinates
+let canvasMouseY = 0;
 let refuelingPlanet = null;
 let thrustParticles = [];
 
@@ -150,6 +169,9 @@ let gold = 0;
 // Money tracking for income rate calculation
 let moneyHistory = []; // Array of {time, amount} entries for the last 30 seconds
 let unprocessedAsteroids = 0;
+
+// Money popup system
+let moneyPopups = []; // Array of {amount, x, y, time, duration}
 let showUpgradeMenu = false;
 let upgradeMenuAnimation = 0; // 0-1, controls slide animation
 let upgradeMenuTarget = 0; // target animation value
@@ -211,20 +233,10 @@ let helpers = {
         maxTime: 1200, // 20 minutes in seconds
         cost: 1000
     },
-    asteroidCreator2: {
-        ships: [], // array of active rank 2 creator ships
-        maxTime: 12000, // 200 minutes (10x longer)
-        cost: 10000 // 10x cost
-    },
     asteroidMiner: {
         ships: [], // array of active miner ships
         maxTime: 300, // 5 minutes in seconds
         cost: 2000
-    },
-    asteroidMiner2: {
-        ships: [], // array of active rank 2 miner ships
-        maxTime: 3000, // 50 minutes (10x longer)
-        cost: 20000 // 10x cost
     },
     rescueHelper: {
         hired: false,
@@ -241,12 +253,10 @@ let goldenAsteroidSpawnTimer = 0;
 let goldenAsteroidSpawnInterval = 45; // 45 seconds between spawns
 
 // Helper ship creation functions
-function createAsteroidCreatorShip(rank = 1) {
+function createAsteroidCreatorShip() {
     const earth = planets.find(p => p.name === 'Earth');
     const earthX = centerX + Math.cos(earth.angle) * earth.distance;
     const earthY = centerY + Math.sin(earth.angle) * earth.distance;
-    
-    const helperType = rank === 2 ? 'asteroidCreator2' : 'asteroidCreator';
     
     return {
         x: earthX,
@@ -254,25 +264,22 @@ function createAsteroidCreatorShip(rank = 1) {
         vx: 0,
         vy: 0,
         angle: 0,
-        size: rank === 2 ? 7 : 5, // Larger size for rank 2
+        size: 5,
         targetPlanet: null,
         state: 'traveling', // 'traveling', 'mining', 'returning'
         miningProgress: 0,
-        miningTime: rank === 2 ? 3 : 5, // Faster mining for rank 2
-        timeLeft: helpers[helperType].maxTime,
+        miningTime: 5,
+        timeLeft: helpers.asteroidCreator.maxTime * getUpgradedHelperDuration(),
         planetMiningCount: 0, // how many times mined current planet
-        maxPlanetMining: rank === 2 ? 8 : 5, // More mining per planet for rank 2
-        rank: rank,
+        maxPlanetMining: 5,
         purchaseTime: Date.now() // Store when it was purchased
     };
 }
 
-function createAsteroidMinerShip(rank = 1) {
+function createAsteroidMinerShip() {
     const earth = planets.find(p => p.name === 'Earth');
     const earthX = centerX + Math.cos(earth.angle) * earth.distance;
     const earthY = centerY + Math.sin(earth.angle) * earth.distance;
-    
-    const helperType = rank === 2 ? 'asteroidMiner2' : 'asteroidMiner';
     
     return {
         x: earthX,
@@ -280,14 +287,13 @@ function createAsteroidMinerShip(rank = 1) {
         vx: 0,
         vy: 0,
         angle: 0,
-        size: rank === 2 ? 6 : 4, // Larger size for rank 2
+        size: 4,
         targetAsteroid: null,
         state: 'seeking', // 'seeking', 'mining', 'returning'
         miningProgress: 0,
-        miningTime: rank === 2 ? 2 : 3, // Faster mining for rank 2
-        timeLeft: helpers[helperType].maxTime,
+        miningTime: 3,
+        timeLeft: helpers.asteroidMiner.maxTime * getUpgradedHelperDuration(),
         cargoValue: 0, // Money earned from mining
-        rank: rank,
         purchaseTime: Date.now() // Store when it was purchased
     };
 }
@@ -671,23 +677,11 @@ function saveGameData() {
         helpers: {
             asteroidCreator: helpers.asteroidCreator.ships.map(ship => ({
                 timeLeft: ship.timeLeft,
-                purchaseTime: ship.purchaseTime,
-                rank: ship.rank || 1
-            })),
-            asteroidCreator2: helpers.asteroidCreator2.ships.map(ship => ({
-                timeLeft: ship.timeLeft,
-                purchaseTime: ship.purchaseTime,
-                rank: ship.rank || 2
+                purchaseTime: ship.purchaseTime
             })),
             asteroidMiner: helpers.asteroidMiner.ships.map(ship => ({
                 timeLeft: ship.timeLeft,
-                purchaseTime: ship.purchaseTime,
-                rank: ship.rank || 1
-            })),
-            asteroidMiner2: helpers.asteroidMiner2.ships.map(ship => ({
-                timeLeft: ship.timeLeft,
-                purchaseTime: ship.purchaseTime,
-                rank: ship.rank || 2
+                purchaseTime: ship.purchaseTime
             })),
             rescueHelper: {
                 hired: helpers.rescueHelper.hired
@@ -734,7 +728,7 @@ function loadGameData() {
                 }
                 
                 // Update spaceship max fuel based on loaded upgrades
-                spaceship.maxFuel = getUpgradedMaxFuel();
+                // Max fuel is now fixed at 100
                 
                 console.log('Game loaded successfully');
                 return true;
@@ -764,12 +758,12 @@ function loadHelpersWithOfflineProgress(savedHelpers, lastSavedTime) {
     };
     
     // Load and process asteroid creators
-    const loadCreatorShips = (savedShips, helperType, rank) => {
+    const loadCreatorShips = (savedShips, helperType) => {
         for (const savedShip of savedShips || []) {
             const remainingTime = Math.max(0, savedShip.timeLeft - offlineTime);
             if (remainingTime > 0) {
                 // Ship is still active - recreate it with updated time
-                const ship = createAsteroidCreatorShip(rank);
+                const ship = createAsteroidCreatorShip();
                 ship.timeLeft = remainingTime;
                 ship.purchaseTime = savedShip.purchaseTime;
                 helpers[helperType].ships.push(ship);
@@ -778,12 +772,12 @@ function loadHelpersWithOfflineProgress(savedHelpers, lastSavedTime) {
     };
     
     // Load and process asteroid miners with offline earnings
-    const loadMinerShips = (savedShips, helperType, rank) => {
+    const loadMinerShips = (savedShips, helperType) => {
         for (const savedShip of savedShips || []) {
             const remainingTime = Math.max(0, savedShip.timeLeft - offlineTime);
             if (remainingTime > 0) {
                 // Ship is still active - recreate it and calculate earnings
-                const ship = createAsteroidMinerShip(rank);
+                const ship = createAsteroidMinerShip();
                 ship.timeLeft = remainingTime;
                 ship.purchaseTime = savedShip.purchaseTime;
                 helpers[helperType].ships.push(ship);
@@ -806,10 +800,8 @@ function loadHelpersWithOfflineProgress(savedHelpers, lastSavedTime) {
     };
     
     // Load all helper types
-    loadCreatorShips(savedHelpers.asteroidCreator, 'asteroidCreator', 1);
-    loadCreatorShips(savedHelpers.asteroidCreator2, 'asteroidCreator2', 2);
-    loadMinerShips(savedHelpers.asteroidMiner, 'asteroidMiner', 1);
-    loadMinerShips(savedHelpers.asteroidMiner2, 'asteroidMiner2', 2);
+    loadCreatorShips(savedHelpers.asteroidCreator, 'asteroidCreator');
+    loadMinerShips(savedHelpers.asteroidMiner, 'asteroidMiner');
     
     // Add offline earnings to money
     if (offlineEarnings > 0) {
@@ -922,7 +914,7 @@ function resetAllGameData() {
     
     // Reset upgrades
     upgrades = {
-        fuelTank: 0,
+        helperDuration: 0,
         fuelEfficiency: 0,
         miningSpeed: 0,
         thrustPower: 0,
@@ -953,9 +945,7 @@ function resetAllGameData() {
     
     // Clear helpers
     helpers.asteroidCreator.ships = [];
-    helpers.asteroidCreator2.ships = [];
     helpers.asteroidMiner.ships = [];
-    helpers.asteroidMiner2.ships = [];
     helpers.rescueHelper.hired = false;
     
     // Clear rescue state
@@ -1325,7 +1315,7 @@ function playRescueSound() {
     oscillator.stop(audioContext.currentTime + 1.5);
 }
 let upgrades = {
-    fuelTank: 0,     // Increases max fuel
+    helperDuration: 0, // Increases hired help duration
     fuelEfficiency: 0, // Reduces fuel consumption
     miningSpeed: 0,   // Reduces mining time
     thrustPower: 0,   // Increases thrust
@@ -1361,20 +1351,93 @@ function drawPlanet(planet, centerX, centerY, scale = 1) {
     const y = centerY + Math.sin(planet.angle) * planet.distance * scale;
     const size = planet.size * scale;
     
-    ctx.beginPath();
-    ctx.arc(x, y, size, 0, 2 * Math.PI);
-    ctx.fillStyle = planet.color;
-    ctx.fill();
-    
-    if (planet.name === 'Saturn') {
+    if (planet.name === 'Earth') {
+        drawEarth(x, y, size);
+    } else {
+        // Draw normal planet
         ctx.beginPath();
-        ctx.ellipse(x, y, size + 5 * scale, size + 2 * scale, 0, 0, 2 * Math.PI);
-        ctx.strokeStyle = planet.color;
-        ctx.lineWidth = 2 * scale;
-        ctx.stroke();
+        ctx.arc(x, y, size, 0, 2 * Math.PI);
+        ctx.fillStyle = planet.color;
+        ctx.fill();
+        
+        if (planet.name === 'Saturn') {
+            ctx.beginPath();
+            ctx.ellipse(x, y, size + 5 * scale, size + 2 * scale, 0, 0, 2 * Math.PI);
+            ctx.strokeStyle = planet.color;
+            ctx.lineWidth = 2 * scale;
+            ctx.stroke();
+        }
     }
     
     return { x, y };
+}
+
+function drawEarth(x, y, size) {
+    ctx.save();
+    
+    // Draw atmospheric glow (outer layer)
+    const glowSize = size * 1.3;
+    const glowGradient = ctx.createRadialGradient(x, y, size, x, y, glowSize);
+    glowGradient.addColorStop(0, 'rgba(135, 206, 250, 0.3)'); // Light blue with transparency
+    glowGradient.addColorStop(1, 'rgba(135, 206, 250, 0)'); // Fade to transparent
+    
+    ctx.beginPath();
+    ctx.arc(x, y, glowSize, 0, 2 * Math.PI);
+    ctx.fillStyle = glowGradient;
+    ctx.fill();
+    
+    // Draw ocean base (blue background)
+    ctx.beginPath();
+    ctx.arc(x, y, size, 0, 2 * Math.PI);
+    ctx.fillStyle = '#1E90FF'; // Deep sky blue for oceans
+    ctx.fill();
+    
+    // Draw continents (simplified landmasses)
+    ctx.fillStyle = '#228B22'; // Forest green for land
+    
+    // Clip to planet circle
+    ctx.beginPath();
+    ctx.arc(x, y, size, 0, 2 * Math.PI);
+    ctx.clip();
+    
+    // Draw several continent-like shapes
+    // North America-ish
+    ctx.beginPath();
+    ctx.ellipse(x - size * 0.3, y - size * 0.4, size * 0.4, size * 0.6, -0.3, 0, 2 * Math.PI);
+    ctx.fill();
+    
+    // Europe/Africa-ish
+    ctx.beginPath();
+    ctx.ellipse(x + size * 0.1, y - size * 0.2, size * 0.25, size * 0.7, 0.2, 0, 2 * Math.PI);
+    ctx.fill();
+    
+    // Asia-ish
+    ctx.beginPath();
+    ctx.ellipse(x + size * 0.5, y - size * 0.1, size * 0.35, size * 0.4, 0, 0, 2 * Math.PI);
+    ctx.fill();
+    
+    // Australia-ish (small)
+    ctx.beginPath();
+    ctx.ellipse(x + size * 0.4, y + size * 0.5, size * 0.15, size * 0.1, 0, 0, 2 * Math.PI);
+    ctx.fill();
+    
+    // Add some cloud cover (white with transparency)
+    ctx.fillStyle = 'rgba(255, 255, 255, 0.4)';
+    
+    // Cloud wisps
+    ctx.beginPath();
+    ctx.ellipse(x - size * 0.2, y + size * 0.3, size * 0.3, size * 0.15, 0.5, 0, 2 * Math.PI);
+    ctx.fill();
+    
+    ctx.beginPath();
+    ctx.ellipse(x + size * 0.3, y - size * 0.6, size * 0.25, size * 0.1, -0.3, 0, 2 * Math.PI);
+    ctx.fill();
+    
+    ctx.beginPath();
+    ctx.ellipse(x - size * 0.6, y + size * 0.1, size * 0.2, size * 0.08, 1, 0, 2 * Math.PI);
+    ctx.fill();
+    
+    ctx.restore();
 }
 
 function updateThrustParticles(deltaTime) {
@@ -1492,6 +1555,9 @@ function updateSpaceship(deltaTime) {
     // Don't allow movement during countdown or rescue
     if (countdownActive || rescueState === 'towing') return;
     
+    // Update mouse world coordinates every frame when mouse is down
+    updateMouseWorldCoordinates();
+    
     if (isMouseDown && spaceship.fuel > 0 && !needsRescue) {
         const dx = mouseX - spaceship.x;
         const dy = mouseY - spaceship.y;
@@ -1594,14 +1660,19 @@ function checkPlanetRefuel(deltaTime) {
                 const earned = unprocessedAsteroids * 100;
                 money += earned;
                 trackMoneyIncome(earned);
+                
+                // Create popup at Earth's position relative to center (same as drawPlanet)
+                const earthWorldX = centerX + Math.cos(earth.angle) * earth.distance;
+                const earthWorldY = centerY + Math.sin(earth.angle) * earth.distance;
+                createMoneyPopup(earned, earthWorldX, earthWorldY - 40);
+                
                 unprocessedAsteroids = 0;
                 
                 // Auto-save after processing asteroids for money
                 saveGameData();
             }
           
-            // Update max fuel if upgraded
-            spaceship.maxFuel = getUpgradedMaxFuel();
+            // Max fuel is now fixed at 100 (no fuel tank upgrade)
         }
     }
     
@@ -1615,6 +1686,11 @@ function checkPlanetRefuel(deltaTime) {
 canvas.addEventListener('mousedown', handleMouseDown);
 canvas.addEventListener('mouseup', handleMouseUp);
 canvas.addEventListener('mousemove', handleMouseMove);
+
+// Add touch support for mobile devices
+canvas.addEventListener('touchstart', handleTouchStart, { passive: false });
+canvas.addEventListener('touchend', handleTouchEnd, { passive: false });
+canvas.addEventListener('touchmove', handleTouchMove, { passive: false });
 
 function updateCamera() {
     camera.x = spaceship.x - centerX;
@@ -2038,20 +2114,7 @@ function updateHelpers(deltaTime) {
         }
     }
     
-    // Update asteroid creator ships (rank 2)
-    for (let i = helpers.asteroidCreator2.ships.length - 1; i >= 0; i--) {
-        const ship = helpers.asteroidCreator2.ships[i];
-        ship.timeLeft -= deltaTime;
-        
-        updateAsteroidCreatorShip(ship, deltaTime);
-        
-        // Remove ship when time runs out
-        if (ship.timeLeft <= 0) {
-            helpers.asteroidCreator2.ships.splice(i, 1);
-        }
-    }
-    
-    // Update asteroid miner ships (rank 1)
+    // Update asteroid miner ships
     for (let i = helpers.asteroidMiner.ships.length - 1; i >= 0; i--) {
         const ship = helpers.asteroidMiner.ships[i];
         ship.timeLeft -= deltaTime;
@@ -2064,18 +2127,6 @@ function updateHelpers(deltaTime) {
         }
     }
     
-    // Update asteroid miner ships (rank 2)
-    for (let i = helpers.asteroidMiner2.ships.length - 1; i >= 0; i--) {
-        const ship = helpers.asteroidMiner2.ships[i];
-        ship.timeLeft -= deltaTime;
-        
-        updateAsteroidMinerShip(ship, deltaTime);
-        
-        // Remove ship when time runs out
-        if (ship.timeLeft <= 0) {
-            helpers.asteroidMiner2.ships.splice(i, 1);
-        }
-    }
     
     // Update spawned asteroids moving to belt
     updateSpawnedAsteroids(deltaTime);
@@ -2096,8 +2147,6 @@ function updateAsteroidCreatorShip(ship, deltaTime) {
                 let targetPlanet = null;
                 for (const planet of availablePlanets) {
                     const hasCreator = helpers.asteroidCreator.ships.some(otherShip => 
-                        otherShip !== ship && otherShip.targetPlanet && otherShip.targetPlanet.name === planet.name
-                    ) || helpers.asteroidCreator2.ships.some(otherShip => 
                         otherShip !== ship && otherShip.targetPlanet && otherShip.targetPlanet.name === planet.name
                     );
                     if (!hasCreator) {
@@ -2339,6 +2388,13 @@ function updateAsteroidMinerShip(ship, deltaTime) {
                 if (ship.cargoValue && ship.cargoValue > 0) {
                     money += ship.cargoValue;
                     trackMoneyIncome(ship.cargoValue);
+                    
+                    // Create popup at Earth's position relative to center (same as drawPlanet)
+                    const earth = planets.find(p => p.name === 'Earth');
+                    const earthWorldX = centerX + Math.cos(earth.angle) * earth.distance;
+                    const earthWorldY = centerY + Math.sin(earth.angle) * earth.distance;
+                    createMoneyPopup(ship.cargoValue, earthWorldX, earthWorldY - 40);
+                    
                     ship.cargoValue = 0;
                     saveGameData(); // Save when money is actually received
                 }
@@ -2363,11 +2419,6 @@ function isAsteroidBeingMined(asteroidIndex) {
             return true;
         }
     }
-    for (const ship of helpers.asteroidMiner2.ships) {
-        if (ship.targetAsteroid === asteroidIndex) {
-            return true;
-        }
-    }
     
     return false;
 }
@@ -2375,16 +2426,6 @@ function isAsteroidBeingMined(asteroidIndex) {
 function adjustAutoMinerIndices(removedIndex) {
     // Adjust all auto-miner ship target indices when an asteroid is removed (both ranks)
     for (const ship of helpers.asteroidMiner.ships) {
-        if (ship.targetAsteroid !== null && ship.targetAsteroid > removedIndex) {
-            ship.targetAsteroid--;
-        } else if (ship.targetAsteroid === removedIndex) {
-            // The asteroid they were targeting was removed - reset their state
-            ship.targetAsteroid = null;
-            ship.state = 'seeking';
-            ship.miningProgress = 0;
-        }
-    }
-    for (const ship of helpers.asteroidMiner2.ships) {
         if (ship.targetAsteroid !== null && ship.targetAsteroid > removedIndex) {
             ship.targetAsteroid--;
         } else if (ship.targetAsteroid === removedIndex) {
@@ -2587,6 +2628,7 @@ function animate(now = performance.now()) {
     updateUpgradeMenuAnimation(deltaTime);
     updateChallengeMode(deltaTime);
     updateAutoSave(deltaTime);
+    updateMoneyPopups();
     updateAchievements(deltaTime);
     updateHelpers(deltaTime);
     updateGoldenAsteroids(deltaTime);
@@ -2642,6 +2684,9 @@ function animate(now = performance.now()) {
 
     // Draw mining feedbacks (after ship, before UI)
     drawMiningFeedbacks(deltaTime);
+    
+    // Draw money popups in world space
+    drawMoneyPopups();
 
     ctx.restore();
     

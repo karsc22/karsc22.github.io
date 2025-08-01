@@ -4,8 +4,8 @@ function handleMouseDown(event) {
     if (countdownActive) return;
     
     const rect = canvas.getBoundingClientRect();
-    const canvasMouseX = event.clientX - rect.left;
-    const canvasMouseY = event.clientY - rect.top;
+    canvasMouseX = event.clientX - rect.left;
+    canvasMouseY = event.clientY - rect.top;
     
     // Handle reset confirmation dialog clicks first (highest priority)
     if (showResetConfirmation && window.resetConfirmationButtons) {
@@ -186,10 +186,6 @@ function handleMouseDown(event) {
     }
     
     isMouseDown = true;
-    
-    // Convert screen coordinates to world coordinates
-    mouseX = spaceship.x + (canvasMouseX - centerX) / camera.zoom;
-    mouseY = spaceship.y + (canvasMouseY - centerY) / camera.zoom;
 }
 
 function handleMouseUp(event) {
@@ -199,12 +195,59 @@ function handleMouseUp(event) {
 function handleMouseMove(event) {
     if (isMouseDown) {
         const rect = canvas.getBoundingClientRect();
-        const canvasMouseX = event.clientX - rect.left;
-        const canvasMouseY = event.clientY - rect.top;
-        
+        canvasMouseX = event.clientX - rect.left;
+        canvasMouseY = event.clientY - rect.top;
+    }
+}
+
+// Update world coordinates from screen coordinates - called every frame when mouse is down
+function updateMouseWorldCoordinates() {
+    if (isMouseDown) {
         // Convert screen coordinates to world coordinates
         mouseX = spaceship.x + (canvasMouseX - centerX) / camera.zoom;
         mouseY = spaceship.y + (canvasMouseY - centerY) / camera.zoom;
+    }
+}
+
+// Touch event handlers for mobile support
+function handleTouchStart(event) {
+    event.preventDefault(); // Prevent default touch behavior (scrolling, etc.)
+    
+    if (event.touches.length > 0) {
+        const touch = event.touches[0];
+        const rect = canvas.getBoundingClientRect();
+        canvasMouseX = touch.clientX - rect.left;
+        canvasMouseY = touch.clientY - rect.top;
+        
+        const mockMouseEvent = {
+            clientX: touch.clientX,
+            clientY: touch.clientY
+        };
+        handleMouseDown(mockMouseEvent);
+    }
+}
+
+function handleTouchEnd(event) {
+    event.preventDefault();
+    
+    const mockMouseEvent = {};
+    handleMouseUp(mockMouseEvent);
+}
+
+function handleTouchMove(event) {
+    event.preventDefault();
+    
+    if (event.touches.length > 0) {
+        const touch = event.touches[0];
+        const rect = canvas.getBoundingClientRect();
+        canvasMouseX = touch.clientX - rect.left;
+        canvasMouseY = touch.clientY - rect.top;
+        
+        const mockMouseEvent = {
+            clientX: touch.clientX,
+            clientY: touch.clientY
+        };
+        handleMouseMove(mockMouseEvent);
     }
 }
 
@@ -449,10 +492,6 @@ function drawAsteroidCreatorShip() {
     for (const ship of helpers.asteroidCreator.ships) {
         drawSingleAsteroidCreatorShip(ship);
     }
-    // Draw all asteroid creator ships (rank 2)
-    for (const ship of helpers.asteroidCreator2.ships) {
-        drawSingleAsteroidCreatorShip(ship);
-    }
 }
 
 function drawSingleAsteroidCreatorShip(ship) {
@@ -474,11 +513,9 @@ function drawSingleAsteroidCreatorShip(ship) {
     ctx.lineTo(size * 1.2, size);
     ctx.lineTo(size * 1.2, -size);
     ctx.closePath();
-    // Use different colors for rank 2
-    const isRank2 = ship.rank === 2;
-    ctx.fillStyle = isRank2 ? '#9932CC' : '#FFB347'; // Purple for rank 2, orange for rank 1
+    ctx.fillStyle = '#FFB347'; // Orange color
     ctx.fill();
-    ctx.strokeStyle = isRank2 ? '#4B0082' : '#FF8C00'; // Dark purple for rank 2, dark orange for rank 1
+    ctx.strokeStyle = '#FF8C00'; // Dark orange
     ctx.lineWidth = 2;
     ctx.stroke();
     
@@ -532,10 +569,6 @@ function drawAsteroidMinerShip() {
     for (const ship of helpers.asteroidMiner.ships) {
         drawSingleAsteroidMinerShip(ship);
     }
-    // Draw all asteroid miner ships (rank 2)
-    for (const ship of helpers.asteroidMiner2.ships) {
-        drawSingleAsteroidMinerShip(ship);
-    }
 }
 
 function drawSingleAsteroidMinerShip(ship) {
@@ -557,11 +590,9 @@ function drawSingleAsteroidMinerShip(ship) {
     ctx.lineTo(size * 0.9, size * 0.8);
     ctx.lineTo(size * 0.9, -size * 0.8);
     ctx.closePath();
-    // Use different colors for rank 2
-    const isRank2 = ship.rank === 2;
-    ctx.fillStyle = isRank2 ? '#FF6347' : '#32CD32'; // Red for rank 2, green for rank 1
+    ctx.fillStyle = '#32CD32'; // Green color
     ctx.fill();
-    ctx.strokeStyle = isRank2 ? '#8B0000' : '#228B22'; // Dark red for rank 2, dark green for rank 1
+    ctx.strokeStyle = '#228B22'; // Dark green
     ctx.lineWidth = 1.5;
     ctx.stroke();
     
@@ -976,7 +1007,7 @@ function drawUpgradeMenu() {
     
     // Upgrades
     const upgradeData = [
-        { key: 'fuelTank', name: 'Fuel Tank', desc: `+50 Max Fuel (${upgrades.fuelTank}/5)` },
+        { key: 'helperDuration', name: 'Helper Duration', desc: `+50% Hired Help Duration (${upgrades.helperDuration}/5)` },
         { key: 'fuelEfficiency', name: 'Fuel Efficiency', desc: `-20% Fuel Usage (${upgrades.fuelEfficiency}/5)` },
         { key: 'miningSpeed', name: 'Mining Speed', desc: `-0.5s Mining Time (${upgrades.miningSpeed}/5)` },
         { key: 'thrustPower', name: 'Thrust Power', desc: `+50% Thrust (${upgrades.thrustPower}/5)` },
@@ -1553,26 +1584,14 @@ function drawHireHelpMenu() {
         { 
             key: 'asteroidCreator', 
             name: 'Asteroid Creator', 
-            desc: 'Mines planets to create asteroids (20 min)', 
+            desc: `Mines planets to create asteroids (${Math.floor(helpers.asteroidCreator.maxTime * getUpgradedHelperDuration() / 60)} min)`, 
             status: helpers.asteroidCreator.ships.length > 0 ? `Active Ships: ${helpers.asteroidCreator.ships.length}` : 'No ships active'
-        },
-        { 
-            key: 'asteroidCreator2', 
-            name: 'Asteroid Creator II', 
-            desc: 'Advanced planet miner, faster & longer lasting (200 min)', 
-            status: helpers.asteroidCreator2.ships.length > 0 ? `Active Ships: ${helpers.asteroidCreator2.ships.length}` : 'No ships active'
         },
         { 
             key: 'asteroidMiner', 
             name: 'Asteroid Miner', 
-            desc: 'Automatically mines asteroids for money (5 min)', 
+            desc: `Automatically mines asteroids for money (${Math.floor(helpers.asteroidMiner.maxTime * getUpgradedHelperDuration() / 60)} min)`, 
             status: helpers.asteroidMiner.ships.length > 0 ? `Active Ships: ${helpers.asteroidMiner.ships.length}` : 'No ships active'
-        },
-        { 
-            key: 'asteroidMiner2', 
-            name: 'Asteroid Miner II', 
-            desc: 'Advanced asteroid miner, faster & longer lasting (50 min)', 
-            status: helpers.asteroidMiner2.ships.length > 0 ? `Active Ships: ${helpers.asteroidMiner2.ships.length}` : 'No ships active'
         },
         { 
             key: 'rescueHelper', 
@@ -1622,9 +1641,8 @@ function drawHireHelpMenu() {
                 ctx.fillText('FREE', menuWidth - 60, y + 25);
             }
         } else {
-            // Check if at maximum capacity for asteroid creators (combined)
-            const totalCreatorShips = helpers.asteroidCreator.ships.length + helpers.asteroidCreator2.ships.length;
-            if ((helper.key === 'asteroidCreator' || helper.key === 'asteroidCreator2') && totalCreatorShips >= 8) {
+            // Check if at maximum capacity for asteroid creators
+            if (helper.key === 'asteroidCreator' && helpers.asteroidCreator.ships.length >= 8) {
                 ctx.fillStyle = '#FFD700';
                 ctx.fillText('MAX (8)', menuWidth - 80, y + 25);
                 ctx.fillStyle = '#FFD700';
@@ -1691,9 +1709,8 @@ function handleHireHelpClick(x, y) {
             } else {
                 // Allow hiring multiple ships for asteroid creator and miner
                 if (money >= helperObj.cost) {
-                    // Check limits for asteroid creators (combined)
-                    const totalCreatorShips = helpers.asteroidCreator.ships.length + helpers.asteroidCreator2.ships.length;
-                    if ((helper.key === 'asteroidCreator' || helper.key === 'asteroidCreator2') && totalCreatorShips >= 8) {
+                    // Check limits for asteroid creators
+                    if (helper.key === 'asteroidCreator' && helpers.asteroidCreator.ships.length >= 8) {
                         return true; // Already at max (8 planets excluding Earth)
                     }
                     
@@ -1702,13 +1719,9 @@ function handleHireHelpClick(x, y) {
                     // Create and add new ship to the array
                     let newShip;
                     if (helper.key === 'asteroidCreator') {
-                        newShip = createAsteroidCreatorShip(1);
-                    } else if (helper.key === 'asteroidCreator2') {
-                        newShip = createAsteroidCreatorShip(2);
+                        newShip = createAsteroidCreatorShip();
                     } else if (helper.key === 'asteroidMiner') {
-                        newShip = createAsteroidMinerShip(1);
-                    } else if (helper.key === 'asteroidMiner2') {
-                        newShip = createAsteroidMinerShip(2);
+                        newShip = createAsteroidMinerShip();
                     }
                     
                     if (newShip) {
@@ -1790,7 +1803,7 @@ function handleUpgradeClick(x, y) {
             Object.keys(upgrades).forEach(key => {
                 upgrades[key] = 0;
             });
-            spaceship.maxFuel = getUpgradedMaxFuel();
+            // Max fuel is now fixed at 100
             
             // Auto-save after reset
             saveGameData();
@@ -1822,7 +1835,7 @@ function handleUpgradeClick(x, y) {
                     }
                 }
                 upgrades[upgrade.key]++;
-                spaceship.maxFuel = getUpgradedMaxFuel();
+                // Max fuel is now fixed at 100
                 
                 // Auto-save after upgrade purchase
                 saveGameData();
@@ -1924,6 +1937,44 @@ function drawResetConfirmation() {
         yes: { x: yesButtonX, y: buttonY, width: buttonWidth, height: buttonHeight },
         no: { x: noButtonX, y: buttonY, width: buttonWidth, height: buttonHeight }
     };
+    
+    ctx.restore();
+}
+
+function drawMoneyPopups() {
+    if (moneyPopups.length === 0) return;
+    
+    const now = Date.now();
+    
+    ctx.save();
+    
+    for (const popup of moneyPopups) {
+        const elapsed = now - popup.time;
+        const progress = elapsed / popup.duration;
+        
+        // Animation values
+        const alpha = 1 - progress; // Fade out over time
+        const yOffset = -progress * 100; // Move up in world space
+        const scale = 1 + progress * 0.3; // Slightly grow
+        
+        // Draw directly in world coordinates (no conversion needed since we're in world space)
+        const worldX = popup.x;
+        const worldY = popup.y + yOffset;
+        
+        ctx.globalAlpha = alpha;
+        ctx.fillStyle = '#00FF00'; // Green color for money
+        ctx.font = `bold ${Math.floor(12 * scale)}px Arial`;
+        ctx.textAlign = 'center';
+        
+        // Add stroke for better visibility
+        ctx.strokeStyle = '#000';
+        ctx.lineWidth = 1.5;
+        
+        const text = `+$${popup.amount.toLocaleString()}`;
+        
+        ctx.strokeText(text, worldX, worldY);
+        ctx.fillText(text, worldX, worldY);
+    }
     
     ctx.restore();
 }

@@ -1,17 +1,196 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-<title>Subs</title>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Game Portal</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Arial', sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            color: white;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 40px 20px;
+        }
+
+        header {
+            text-align: center;
+            margin-bottom: 60px;
+        }
+
+        h1 {
+            font-size: 3.5rem;
+            font-weight: 300;
+            letter-spacing: 2px;
+            margin-bottom: 20px;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+        }
+
+        .subtitle {
+            font-size: 1.2rem;
+            opacity: 0.9;
+            font-weight: 300;
+        }
+
+        .games-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
+            gap: 40px;
+            margin-top: 40px;
+        }
+
+        .game-card {
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+            border-radius: 20px;
+            padding: 30px;
+            transition: all 0.3s ease;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            cursor: pointer;
+            text-decoration: none;
+            color: inherit;
+        }
+
+        .game-card:hover {
+            transform: translateY(-10px);
+            box-shadow: 0 20px 40px rgba(0,0,0,0.3);
+            background: rgba(255, 255, 255, 0.15);
+        }
+
+        .game-preview {
+            width: 100%;
+            height: 200px;
+            background: rgba(0,0,0,0.3);
+            border-radius: 15px;
+            margin-bottom: 20px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            overflow: hidden;
+            position: relative;
+        }
+
+        .game-preview img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            border-radius: 15px;
+        }
+
+        .game-preview::after {
+            content: '▶';
+            position: absolute;
+            font-size: 3rem;
+            color: rgba(255,255,255,0.8);
+            opacity: 0;
+            transition: opacity 0.3s ease;
+        }
+
+        .game-card:hover .game-preview::after {
+            opacity: 1;
+        }
+
+        .game-title {
+            font-size: 1.8rem;
+            font-weight: 600;
+            margin-bottom: 15px;
+            text-align: center;
+        }
+
+        .game-description {
+            font-size: 1rem;
+            line-height: 1.6;
+            opacity: 0.9;
+            text-align: center;
+        }
+
+        .star-miners-preview {
+            background: radial-gradient(circle at center, #1a1a2e, #16213e, #0f3460);
+            position: relative;
+        }
+
+        .star-miners-preview::before {
+            content: '';
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            background: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><circle cx="20" cy="30" r="1" fill="white"/><circle cx="80" cy="20" r="0.5" fill="white"/><circle cx="60" cy="70" r="1" fill="white"/><circle cx="30" cy="80" r="0.5" fill="white"/><circle cx="90" cy="60" r="1" fill="white"/><circle cx="10" cy="10" r="0.5" fill="white"/></svg>');
+            opacity: 0.6;
+        }
+
+        .subs-preview {
+            background: linear-gradient(180deg, #1e3c72 0%, #2a5298 50%, #1e3c72 100%);
+            position: relative;
+        }
+
+        .subs-preview::before {
+            content: '';
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            background: repeating-linear-gradient(
+                90deg,
+                transparent,
+                transparent 20px,
+                rgba(255,255,255,0.1) 20px,
+                rgba(255,255,255,0.1) 22px
+            );
+        }
+
+        @media (max-width: 768px) {
+            .games-grid {
+                grid-template-columns: 1fr;
+            }
+            
+            h1 {
+                font-size: 2.5rem;
+            }
+            
+            .game-card {
+                padding: 20px;
+            }
+        }
+    </style>
 </head>
-
 <body>
-<img id="bg" src="bg.jpg" style="display: none;" alt="background" width="890" height="648">
-<img id="sub" src="sub.png" style="display: none;" alt="sub" width="109" height="113">
-<img id="explosion" src="explosion.png" style="display: none;" alt="explosion" width="70" height="69">
+    <div class="container">
+        <header>
+            <h1>Game Portal</h1>
+            <p class="subtitle">Choose your adventure</p>
+        </header>
 
-<canvas id="myCanvas" width="910" height="660"></canvas>
+        <div class="games-grid">
+            <a href="star-miners/index.html" class="game-card">
+                <div class="game-preview">
+                    <img src="star-miners/splash.png" alt="Star Miners Preview">
+                </div>
+                <h2 class="game-title">Star Miners</h2>
+                <p class="game-description">
+                    Explore the cosmos in this immersive solar system simulation. Navigate through space, mine asteroids, and discover the mysteries of the universe in this visually stunning astronomical adventure.
+                </p>
+            </a>
+
+            <a href="subs/index.html" class="game-card">
+                <div class="game-preview">
+                    <img src="subs/splash.png" alt="Subs Preview">
+                </div>
+                <h2 class="game-title">Subs</h2>
+                <p class="game-description">
+                    Dive into the depths in this HTML5 recreation of the classic 1977 Atari arcade game. Command your submarine through treacherous underwater terrain and engage in thrilling naval combat.
+                </p>
+            </a>
+        </div>
+    </div>
 </body>
 </html>
-
-<script type="text/javascript" src="subs.js"></script>
-
