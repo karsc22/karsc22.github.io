@@ -1,0 +1,349 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>EV Efficiency Converter</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        
+        .container {
+            background: white;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        
+        h1 {
+            text-align: center;
+            color: #333;
+            margin-bottom: 30px;
+        }
+        
+        .converter-row {
+            display: flex;
+            align-items: center;
+            margin-bottom: 20px;
+            padding: 15px;
+            background: #f9f9f9;
+            border-radius: 8px;
+        }
+        
+        .unit-label {
+            width: 150px;
+            font-weight: bold;
+            color: #555;
+            cursor: help;
+            position: relative;
+        }
+        
+        .unit-label .tooltip {
+            visibility: hidden;
+            width: 200px;
+            background-color: #333;
+            color: #fff;
+            text-align: center;
+            border-radius: 6px;
+            padding: 8px;
+            position: absolute;
+            z-index: 1;
+            bottom: 125%;
+            left: 50%;
+            margin-left: -100px;
+            opacity: 0;
+            transition: opacity 0.3s;
+            font-size: 12px;
+            font-weight: normal;
+        }
+        
+        .unit-label .tooltip::after {
+            content: "";
+            position: absolute;
+            top: 100%;
+            left: 50%;
+            margin-left: -5px;
+            border-width: 5px;
+            border-style: solid;
+            border-color: #333 transparent transparent transparent;
+        }
+        
+        .unit-label:hover .tooltip {
+            visibility: visible;
+            opacity: 1;
+        }
+        
+        .slider-container {
+            flex: 1;
+            margin: 0 20px;
+        }
+        
+        .slider {
+            width: 100%;
+            height: 8px;
+            border-radius: 5px;
+            background: #ddd;
+            outline: none;
+            -webkit-appearance: none;
+        }
+        
+        .slider::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            background: #007bff;
+            cursor: pointer;
+        }
+        
+        .slider::-moz-range-thumb {
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            background: #007bff;
+            cursor: pointer;
+            border: none;
+        }
+        
+        .value-display {
+            width: 80px;
+            padding: 8px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            text-align: center;
+            font-size: 14px;
+        }
+        
+        .units {
+            margin-left: 10px;
+            color: #666;
+            font-size: 12px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>EV Efficiency Converter</h1>
+        
+        <div class="converter-row">
+            <div class="unit-label">MPGe
+                <span class="tooltip">Miles Per Gallon Equivalent</span>
+            </div>
+            <div class="slider-container">
+                <input type="range" class="slider" id="mpge-slider" min="20" max="300" value="100" step="0.1">
+            </div>
+            <input type="number" class="value-display" id="mpge-value" value="100" step="0.1">
+            <span class="units">MPGe</span>
+        </div>
+        
+        <div class="converter-row">
+            <div class="unit-label">Miles per kWh
+                <span class="tooltip">MPGe ÷ 33.7 kWh per gallon</span>
+            </div>
+            <div class="slider-container">
+                <input type="range" class="slider" id="miles-kwh-slider" min="0.59" max="8.9" value="3" step="0.01">
+            </div>
+            <input type="number" class="value-display" id="miles-kwh-value" value="3.00" step="0.01">
+            <span class="units">mi/kWh</span>
+        </div>
+        
+        <div class="converter-row">
+            <div class="unit-label">Wh per mile
+                <span class="tooltip">1000 ÷ miles per kWh</span>
+            </div>
+            <div class="slider-container">
+                <input type="range" class="slider" id="wh-mile-slider" min="112" max="1695" value="333" step="1">
+            </div>
+            <input type="number" class="value-display" id="wh-mile-value" value="333" step="1">
+            <span class="units">Wh/mi</span>
+        </div>
+        
+        <div class="converter-row">
+            <div class="unit-label">Km per kWh
+                <span class="tooltip">miles per kWh × 1.609 km per mile</span>
+            </div>
+            <div class="slider-container">
+                <input type="range" class="slider" id="km-kwh-slider" min="0.95" max="14.3" value="4.8" step="0.01">
+            </div>
+            <input type="number" class="value-display" id="km-kwh-value" value="4.83" step="0.01">
+            <span class="units">km/kWh</span>
+        </div>
+        
+        <div class="converter-row">
+            <div class="unit-label">Wh per km
+                <span class="tooltip">Wh per mile ÷ 1.609 km per mile</span>
+            </div>
+            <div class="slider-container">
+                <input type="range" class="slider" id="wh-km-slider" min="70" max="1053" value="207" step="1">
+            </div>
+            <input type="number" class="value-display" id="wh-km-value" value="207" step="1">
+            <span class="units">Wh/km</span>
+        </div>
+        
+        <div class="converter-row">
+            <div class="unit-label">kWh per 100 km
+                <span class="tooltip">100 ÷ km per kWh</span>
+            </div>
+            <div class="slider-container">
+                <input type="range" class="slider" id="kwh-100km-slider" min="7" max="105.3" value="20.7" step="0.1">
+            </div>
+            <input type="number" class="value-display" id="kwh-100km-value" value="20.7" step="0.1">
+            <span class="units">kWh/100km</span>
+        </div>
+    </div>
+
+    <script>
+        // Conversion constants
+        const KWH_TO_MPG_FACTOR = 33.7; // kWh equivalent to 1 gallon of gasoline
+        const MILES_TO_KM = 1.609344;
+        
+        // Get all sliders and value inputs
+        const sliders = {
+            mpge: document.getElementById('mpge-slider'),
+            milesKwh: document.getElementById('miles-kwh-slider'),
+            whMile: document.getElementById('wh-mile-slider'),
+            kmKwh: document.getElementById('km-kwh-slider'),
+            whKm: document.getElementById('wh-km-slider'),
+            kwh100km: document.getElementById('kwh-100km-slider')
+        };
+        
+        const values = {
+            mpge: document.getElementById('mpge-value'),
+            milesKwh: document.getElementById('miles-kwh-value'),
+            whMile: document.getElementById('wh-mile-value'),
+            kmKwh: document.getElementById('km-kwh-value'),
+            whKm: document.getElementById('wh-km-value'),
+            kwh100km: document.getElementById('kwh-100km-value')
+        };
+        
+        // Conversion functions - all convert to/from miles per kWh as base unit
+        function convertFromMilesPerKwh(milesPerKwh) {
+            const mpge = milesPerKwh * KWH_TO_MPG_FACTOR;
+            const whPerMile = 1000 / milesPerKwh;
+            const kmPerKwh = milesPerKwh * MILES_TO_KM;
+            const whPerKm = whPerMile / MILES_TO_KM;
+            const kwh100km = 100 / kmPerKwh;
+            
+            return {
+                mpge: mpge,
+                milesKwh: milesPerKwh,
+                whMile: whPerMile,
+                kmKwh: kmPerKwh,
+                whKm: whPerKm,
+                kwh100km: kwh100km
+            };
+        }
+        
+        function convertToMilesPerKwh(value, unit) {
+            switch(unit) {
+                case 'mpge':
+                    return value / KWH_TO_MPG_FACTOR;
+                case 'milesKwh':
+                    return value;
+                case 'whMile':
+                    return 1000 / value;
+                case 'kmKwh':
+                    return value / MILES_TO_KM;
+                case 'whKm':
+                    return 1000 / (value * MILES_TO_KM);
+                case 'kwh100km':
+                    return (100 * MILES_TO_KM) / (value * 1000);
+                default:
+                    return value;
+            }
+        }
+        
+        function updateAllValues(sourceUnit, sourceValue) {
+            // Convert source value to miles per kWh
+            const milesPerKwh = convertToMilesPerKwh(sourceValue, sourceUnit);
+            
+            // Convert to all other units
+            const converted = convertFromMilesPerKwh(milesPerKwh);
+            
+            // Update all sliders and value inputs except the source
+            Object.keys(converted).forEach(unit => {
+                if (unit !== sourceUnit) {
+                    const value = converted[unit];
+                    sliders[unit].value = value;
+                    values[unit].value = unit === 'milesKwh' || unit === 'kmKwh' ? 
+                        value.toFixed(2) : 
+                        (unit === 'kwh100km' ? value.toFixed(1) : Math.round(value));
+                }
+            });
+        }
+        
+        // Add event listeners for sliders
+        Object.keys(sliders).forEach(unit => {
+            sliders[unit].addEventListener('input', function() {
+                const value = parseFloat(this.value);
+                values[unit].value = unit === 'milesKwh' || unit === 'kmKwh' ? 
+                    value.toFixed(2) : 
+                    (unit === 'kwh100km' ? value.toFixed(1) : Math.round(value));
+                updateAllValues(unit, value);
+            });
+        });
+        
+        // Add event listeners for value inputs
+        Object.keys(values).forEach(unit => {
+            values[unit].addEventListener('input', function() {
+                const value = parseFloat(this.value);
+                if (!isNaN(value)) {
+                    sliders[unit].value = value;
+                    updateAllValues(unit, value);
+                }
+            });
+        });
+        
+        // Function to update URL when values change
+        function updateURL(mpgeValue) {
+            const newHash = '#' + Math.round(mpgeValue * 10) / 10; // Round to 1 decimal
+            if (window.location.hash !== newHash) {
+                window.history.replaceState(null, null, newHash);
+            }
+        }
+        
+        // Store original function before wrapping
+        const originalUpdateAllValues = updateAllValues;
+        
+        // Modify the updateAllValues function to also update URL when MPGe changes
+        updateAllValues = function(sourceUnit, sourceValue) {
+            originalUpdateAllValues(sourceUnit, sourceValue);
+            
+            // Update URL if the source is MPGe or if we need to get the current MPGe value
+            if (sourceUnit === 'mpge') {
+                updateURL(sourceValue);
+            } else {
+                // Convert current value to MPGe for URL update
+                const currentMpge = parseFloat(values.mpge.value);
+                updateURL(currentMpge);
+            }
+        };
+        
+        // Check for URL hash parameter and initialize
+        function initializeFromURL() {
+            const hash = window.location.hash;
+            let initialMpge = 100; // default value
+            
+            if (hash) {
+                // Remove # and parse the number
+                const hashValue = parseFloat(hash.substring(1));
+                if (!isNaN(hashValue) && hashValue >= 20 && hashValue <= 300) {
+                    initialMpge = hashValue;
+                }
+            }
+            
+            // Use original function for initialization to avoid URL update loop
+            originalUpdateAllValues('mpge', initialMpge);
+        }
+        
+        // Initialize with URL parameter or default values
+        initializeFromURL();
+    </script>
+</body>
+</html>
